@@ -27,19 +27,36 @@
 # limitations under the License.
 
 """Application entry point."""
-from warnings import filterwarnings
 from pathlib import Path
 
 from kedro.context import KedroContext, load_context
+from kedro.extras.transformers import ProfileTimeTransformer  # new import
+from kedro.framework.hooks import hook_impl
+from kedro.io import DataCatalog
+
+from .memory_profile import ProfileMemoryTransformer  # new import
 
 
-filterwarnings("ignore")
+class TransformerHooks:
+    @hook_impl
+    def after_catalog_created(self, catalog: DataCatalog) -> None:
+        catalog.add_transformer(ProfileTimeTransformer())
+        catalog.add_transformer(ProfileMemoryTransformer(), "master_table")
 
 
 class ProjectContext(KedroContext):
     """Users can override the remaining methods from the parent class here,
     or create new ones (e.g. as required by plugins)
     """
+
+    hooks = (
+        # register the collection of your Hook implementations here.
+        # Note that we are using an instance here, not a class. It could also be a
+        # module.
+        TransformerHooks(),
+    )
+    # You can add more than one hook by simply listing them
+    # in a tuple.`hooks = (Hook1(), Hook2())`
 
 
 def run_package():
